@@ -22,6 +22,7 @@ class Juego(object):
         self.jugador1 = ''
         self.jugador2 = ''
 
+        #   ESPACIOS DEL TABLERO (RECTANGULOS)
         esp00 = pygame.Rect(0, 0, 200, 200)
         esp01 = pygame.Rect(210, 0, 200, 200)
         esp02 = pygame.Rect(420, 0, 200, 200)
@@ -31,6 +32,7 @@ class Juego(object):
         esp20 = pygame.Rect(0, 420, 200, 200)
         esp21 = pygame.Rect(210, 420, 200, 200)
         esp22 = pygame.Rect(420, 420, 200, 200)
+        #--------------------------------------
 
         self.tablero = np.zeros((3,3))
 
@@ -81,16 +83,17 @@ class Juego(object):
 
     def frame_pantalla(self, screen):
         screen.fill(BLANCO)
-
-        for esp in self.espTab:
-            col = int(esp[0])
-            fil = int(esp[2])
-            pygame.draw.rect(screen, GRIS, self.espTab.get(esp))
-            cuadro = self.espTab.get(esp)
-            if self.tablero[col,fil] == 1:
-                pygame.draw.line(screen, ROJO, cuadro.topleft, cuadro.bottomright, 10)
-                pygame.draw.line(screen, ROJO, cuadro.topright, cuadro.bottomleft, 10)
-            elif self.tablero[col,fil] == 2:
-                pygame.draw.circle(screen, VERDE, cuadro.center, cuadro.width/2, 10)
-                
+        if inicio:
+            pass
+        elif partida:
+            for esp in self.espTab:
+                col = int(esp[0])
+                fil = int(esp[2])
+                pygame.draw.rect(screen, GRIS, self.espTab.get(esp))
+                cuadro = self.espTab.get(esp)
+                if self.tablero[col,fil] == 1:
+                    pygame.draw.line(screen, ROJO, cuadro.topleft, cuadro.bottomright, 10)
+                    pygame.draw.line(screen, ROJO, cuadro.topright, cuadro.bottomleft, 10)
+                elif self.tablero[col,fil] == 2:
+                    pygame.draw.circle(screen, VERDE, cuadro.center, cuadro.width/2, 10)
         pygame.display.flip()
