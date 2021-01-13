@@ -19,7 +19,7 @@ def main():
         done = game.proceso_eventos()
         game.correr_logica()
         game.frame_pantalla(screen)
-        clock.tick(10)
+        clock.tick(60)
     pygame.quit()
     sys.exit()
 
