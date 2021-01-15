@@ -6,6 +6,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from clases import *
 
+round_up = lambda num: int(num + 1) if int(num) != num else int(num)
+
 ancho = 620
 alto = 620
 tamaño = (ancho,alto)
@@ -91,6 +93,14 @@ class Juego(object):
         self.session = Session()
         #--------------------------------------
 
+    def reiniciar(self):
+        self.movimientos = 9
+        self.tablero = np.zeros((3,3))
+        self.jugada = False
+        self.final = False
+        self.empate = False
+        self.inicio = True
+
     def guardarPartida(self, jug):
         if (self.session.query(Perfil).get(jug.nombre)==None):
             jug = Perfil(
@@ -127,30 +137,32 @@ class Juego(object):
             if event.type == QUIT:
                 return True
             if event.type == KEYDOWN:
+                if self.activo1:
+                    if not event.key == K_RETURN and not event.key == K_BACKSPACE:
+                        self.jugador1.nombre += event.unicode
+                if self.activo2:
+                    if not event.key == K_RETURN and not event.key == K_BACKSPACE:
+                        self.jugador2.nombre += event.unicode
+                if event.key == K_BACKSPACE and self.activo1:
+                        self.jugador1.nombre = self.jugador1.nombre[:-1]
+                if self.activo2 and event.key == K_BACKSPACE:
+                        self.jugador2.nombre = self.jugador2.nombre[:-1]
                 if event.key == K_ESCAPE:
                     return True
-                if self.activo1:
-                    if event.key == K_RETURN:
+                if event.type == K_SPACE:
+                    if self.final:
+                        self.__init__()
+                if event.key == K_RETURN:
+                    if self.activo1:
                         self.activo1 = False
                         self.colINP1 = GRIS
-                    if event.key == K_BACKSPACE:
-                        self.jugador1.nombre = self.jugador1.nombre[:-1]
-                    else:
-                        if not event.key == K_RETURN:
-                            self.jugador1.nombre += event.unicode
-                if self.activo2:
-                    if event.key == K_RETURN:
+                    if self.activo2:
                         self.activo2 = False
                         self.colINP2 = GRIS
-                    if event.key == K_BACKSPACE:
-                        self.jugador2.nombre = self.jugador2.nombre[:-1]
-                    else:
-                        if not event.key == K_RETURN:
-                            self.jugador2.nombre += event.unicode
                 if (self.final or self.empate) and event.key == K_SPACE:
                     self.__init__()
             if event.type == MOUSEBUTTONDOWN:
-                if self.partida:
+                if self.partida and not (self.final or self.empate):
                     for esp in self.espTab:
                         if self.espTab.get(esp).collidepoint(event.pos):
                             if self.tablero[int(esp[0]),int(esp[2])] == 0:
@@ -161,45 +173,55 @@ class Juego(object):
                         self.seleccionNombres = True
                     if self.botonSALIR.collidepoint(event.pos):
                         return True
-                if self.seleccionNombres:
-                    if self.cuadroJ1.collidepoint(event.pos):
-                        self.activo1 = not self.activo1
-                        self.colINP1 = GRISclaro
-                    if self.cuadroJ2.collidepoint(event.pos):
-                        self.activo2 = not self.activo2
-                        self.colINP2 = GRISclaro
-                    if self.botonBack.collidepoint(event.pos):
-                        self.inicio = True
-                        self.seleccionNombres = False
-                    if self.botonStart.collidepoint(event.pos):
-                        self.seleccionNombres = False
-                        self.partida = True
-                        self.jugada = True
+                if self.cuadroJ1.collidepoint(event.pos) and not self.activo2:
+                    self.activo1 = not self.activo1
+                    self.colINP1 = GRISclaro
+                if self.cuadroJ2.collidepoint(event.pos) and not self.activo1:
+                    self.activo2 = not self.activo2
+                    self.colINP2 = GRISclaro
+                if self.botonBack.collidepoint(event.pos) and self.seleccionNombres:
+                    self.inicio = True
+                    self.seleccionNombres = False
+                    self.empate = False
+                    self.final = False
+                if self.botonStart.collidepoint(event.pos) and self.seleccionNombres:
+                    self.seleccionNombres = False
+                    self.partida = True
+                    self.jugada = True
+                if self.botonBack.collidepoint(event.pos) and (self.final or self.empate):
+                    self.reiniciar()
             if event.type == MOUSEMOTION:
-                if self.botonStart.collidepoint(event.pos): self.COLORstart = BLANCO
-                else: self.COLORstart = NEGRO
-                if self.botonBack.collidepoint(event.pos): self.COLORback = BLANCO
-                else: self.COLORback = NEGRO
+                if self.seleccionNombres:
+                    if self.botonStart.collidepoint(event.pos): self.COLORstart = BLANCO
+                    else: self.COLORstart = NEGRO
+                    if self.botonBack.collidepoint(event.pos): self.COLORback = BLANCO
+                    else: self.COLORback = NEGRO
+                elif self.final:
+                    if self.botonBack.collidepoint(event.pos): self.COLORback = BLANCO
+                    else: self.COLORback = NEGRO
         return False
     
     def correr_logica(self):
 
-        if self.tablero[0,0] == 1 and self.tablero[0,1] == 1 and self.tablero[0,2] == 1 or self.tablero[1,0] == 1 and self.tablero[1,1] == 1 and self.tablero[1,2] == 1 or self.tablero[2,0] == 1 and self.tablero[2,1] == 1 and self.tablero[2,2] == 1 or self.tablero[0,0] == 1 and self.tablero[1,1] == 1 and self.tablero[2,2] == 1 or self.tablero[0,2] == 1 and self.tablero[1,1] == 1 and self.tablero[2,0] == 1 or self.tablero[0,0] == 1 and self.tablero[1,0] == 1 and self.tablero[2,0] == 1 or self.tablero[0,1] == 1 and self.tablero[1,1] == 1 and self.tablero[2,1] == 1 or self.tablero[0,2] == 1 and self.tablero[1,2] == 1 and self.tablero[2,2] == 1:
+        if self.partida and (self.tablero[0,0] == 1 and self.tablero[0,1] == 1 and self.tablero[0,2] == 1 or self.tablero[1,0] == 1 and self.tablero[1,1] == 1 and self.tablero[1,2] == 1 or self.tablero[2,0] == 1 and self.tablero[2,1] == 1 and self.tablero[2,2] == 1 or self.tablero[0,0] == 1 and self.tablero[1,1] == 1 and self.tablero[2,2] == 1 or self.tablero[0,2] == 1 and self.tablero[1,1] == 1 and self.tablero[2,0] == 1 or self.tablero[0,0] == 1 and self.tablero[1,0] == 1 and self.tablero[2,0] == 1 or self.tablero[0,1] == 1 and self.tablero[1,1] == 1 and self.tablero[2,1] == 1 or self.tablero[0,2] == 1 and self.tablero[1,2] == 1 and self.tablero[2,2] == 1):
             self.jugador1.Victorias += 1 ; self.jugador2.Derrotas += 1
             self.final = True
             self.ganador = self.jugador1.nombre
+            self.guardarPartida(self.jugador1) ; self.guardarPartida(self.jugador2)
+            self.partida = False
 
-        elif self.tablero[0,0] == 2 and self.tablero[0,1] == 2 and self.tablero[0,2] == 2 or self.tablero[1,0] == 2 and self.tablero[1,1] == 2 and self.tablero[1,2] == 2 or self.tablero[2,0] == 2 and self.tablero[2,1] == 2 and self.tablero[2,2] == 2 or self.tablero[0,0] == 2 and self.tablero[1,1] == 2 and self.tablero[2,2] == 2 or self.tablero[0,2] == 2 and self.tablero[1,1] == 2 and self.tablero[2,0] == 2 or self.tablero[0,0] == 2 and self.tablero[1,0] == 2 and self.tablero[2,0] == 2 or self.tablero[0,1] == 2 and self.tablero[1,1] == 2 and self.tablero[2,1] == 2 or self.tablero[0,2] == 2 and self.tablero[1,2] == 2 and self.tablero[2,2] == 2:
+        if self.partida and (self.tablero[0,0] == 2 and self.tablero[0,1] == 2 and self.tablero[0,2] == 2 or self.tablero[1,0] == 2 and self.tablero[1,1] == 2 and self.tablero[1,2] == 2 or self.tablero[2,0] == 2 and self.tablero[2,1] == 2 and self.tablero[2,2] == 2 or self.tablero[0,0] == 2 and self.tablero[1,1] == 2 and self.tablero[2,2] == 2 or self.tablero[0,2] == 2 and self.tablero[1,1] == 2 and self.tablero[2,0] == 2 or self.tablero[0,0] == 2 and self.tablero[1,0] == 2 and self.tablero[2,0] == 2 or self.tablero[0,1] == 2 and self.tablero[1,1] == 2 and self.tablero[2,1] == 2 or self.tablero[0,2] == 2 and self.tablero[1,2] == 2 and self.tablero[2,2] == 2):
             self.jugador2.Victorias += 1 ; self.jugador1.Derrotas += 1
             self.final = True
             self.ganador = self.jugador2.nombre
+            self.guardarPartida(self.jugador1) ; self.guardarPartida(self.jugador2)
+            self.partida = False
 
-        elif self.movimientos == 0:
+        if self.movimientos == 0 and self.partida:
             self.jugador1.Empates += 1 ; self.jugador2.Empates += 1
             self.empate = True
-
-        if self.final or self.empate:
             self.guardarPartida(self.jugador1) ; self.guardarPartida(self.jugador2)
+            self.partida = False
 
     def frame_pantalla(self, screen):
         screen.fill(BLANCO)
@@ -228,7 +250,7 @@ class Juego(object):
             screen.blit(nombreX, nombreX_rect)
 
             nombreJ1 = self.fuenteN.render(self.jugador1.nombre, True, NEGRO)
-            screen.blit(nombreJ1, (self.cuadroJ1.x+5, self.cuadroJ1.y+5))
+            screen.blit(nombreJ1, (self.cuadroJ1.x+5, self.cuadroJ1.y))
 
             pygame.draw.rect(screen, self.colINP2, self.cuadroJ2, border_radius=10)
             nombreO = self.fuente.render('Jugador "O"', True, NEGRO)
@@ -236,7 +258,7 @@ class Juego(object):
             screen.blit(nombreO, nombreO_rect)
 
             nombreJ2 = self.fuenteN.render(self.jugador2.nombre, True, NEGRO)
-            screen.blit(nombreJ2, (self.cuadroJ2.x+5, self.cuadroJ2.y+5))
+            screen.blit(nombreJ2, (self.cuadroJ2.x+5, self.cuadroJ2.y))
 
             pygame.draw.rect(screen, VERDE, self.botonStart, border_radius=20)
             pygame.draw.polygon(screen, self.COLORstart,[(545, 565), (545, 595), (585, 580)])
@@ -256,9 +278,39 @@ class Juego(object):
                     pygame.draw.circle(screen, VERDE, cuadro.center, cuadro.width/2, 10)
         
         if self.final:
-            print('Felicitaciones, {} ha ganado este juego.')
+            screen.fill(NEGRO)
+            ft1 = self.fuente.render('Felicitaciones', True, BLANCO)
+            ft1_rect = ft1.get_rect(center=(ancho/2, 100))
+            ft2 = self.fuente.render(f'{self.ganador}', True, BLANCO)
+            ft2_rect = ft2.get_rect(center=(ancho/2, 200))
+            ft3 = self.fuente.render('Has ganado en:', True, BLANCO)
+            ft3_rect = ft3.get_rect(center=(ancho/2, 300))
+            ft4 = self.fuente.render((str(int(round_up((9-self.movimientos)/2))))+' Movimientos', True, BLANCO)
+            ft4_rect = ft4.get_rect(center=(ancho/2, 400))
+            screen.blit(ft1, ft1_rect)
+            screen.blit(ft2, ft2_rect)
+            screen.blit(ft3, ft3_rect)
+            screen.blit(ft4, ft4_rect)
+            
+            pygame.draw.rect(screen, ROJO, self.botonBack, border_radius=20)
+            pygame.draw.polygon(screen, self.COLORback, [(75, 565), (75, 595), (35, 580)])
 
         if self.empate:
-            print('La partida ha terminado en empate.')
+            screen.fill(NEGRO)
+            et1 = self.fuente.render('La partida', True, BLANCO)
+            et1_rect = et1.get_rect(center=(ancho/2, 100))
+            et2 = self.fuente.render('ha terminado', True, BLANCO)
+            et2_rect = et2.get_rect(center=(ancho/2, 200))
+            et3 = self.fuente.render('en', True, BLANCO)
+            et3_rect = et3.get_rect(center=(ancho/2, 300))
+            et4 = self.fuente.render('¡EMPATE!', True, BLANCO)
+            et4_rect = et4.get_rect(center=(ancho/2, 400))
+            screen.blit(et1, et1_rect)
+            screen.blit(et2, et2_rect)
+            screen.blit(et3, et3_rect)
+            screen.blit(et4, et4_rect)
+
+            pygame.draw.rect(screen, ROJO, self.botonBack, border_radius=20)
+            pygame.draw.polygon(screen, self.COLORback, [(75, 565), (75, 595), (35, 580)])
 
         pygame.display.flip()
