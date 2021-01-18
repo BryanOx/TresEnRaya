@@ -1,6 +1,5 @@
 import pygame
 import sys
-from colorama import init
 from juego import *
 
 def main():
