@@ -35,7 +35,7 @@ python main.py
 
 ------------------------------------------------------------------------------------------------------------------
 
-Linux:
+Linux/Mac OS:
 
 1- right click on this directory (game directory)
 
