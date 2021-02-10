@@ -1,7 +1,7 @@
 from pygame.locals import *
 import pygame
 import numpy as np
-from sqlalchemy import create_engine, Column, Integer, String, Sequence
+from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from clases import *
